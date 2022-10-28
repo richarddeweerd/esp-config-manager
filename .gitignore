@@ -1,0 +1,10 @@
+.pio
+
+.vscode
+
+test/README
+lib/README
+include/README
+
+lib/TFT_Gui
+library.json
