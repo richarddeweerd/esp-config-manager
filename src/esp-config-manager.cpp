@@ -5,6 +5,7 @@
 ConfigItemBase::ConfigItemBase(void) {}
 ConfigItemBase::~ConfigItemBase(void) {}
 
+
 void ConfigItemBase::setup(const char *id, const char *label) {
     _id = id;
     _label = label;
