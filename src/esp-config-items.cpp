@@ -63,6 +63,9 @@ void ConfigGroup::to_json(JsonObject &doc) {
         JsonObject child_object = doc.createNestedObject(_id);
         _child->to_json(child_object);
     }
+    if (_sibling != nullptr) {
+        _sibling->to_json(doc);
+    }
 }
 
 void ConfigGroup::from_json(JsonObject &doc) {
@@ -114,7 +117,23 @@ void ConfigItemInt::item_from_json(JsonObject &doc) {
 void ConfigItemInt::item_to_json(JsonObject &doc) {
     doc[_id] = _value;
 }
+ConfigItemFloat::ConfigItemFloat() {}
+void ConfigItemFloat::init(const char *id, const char *label, float defaultValue) {
+    setup(id, label);
+    _value = defaultValue;
+}
+void ConfigItemFloat::init(const char *id, float defaultValue) {
+    setup(id);
+    _value = defaultValue;
+}
 
+void ConfigItemFloat::item_from_json(JsonObject &doc) {
+    _value = doc[_id];
+}
+
+void ConfigItemFloat::item_to_json(JsonObject &doc) {
+    doc[_id] = _value;
+}
 ConfigItemString::ConfigItemString() {}
 
 void ConfigItemString::init(const char *id, const char *label, const char *defaultValue) {

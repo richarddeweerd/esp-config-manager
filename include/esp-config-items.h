@@ -8,14 +8,15 @@ class ConfigItemBase {
    public:
     ConfigItemBase(void);
     ~ConfigItemBase(void);
+
     void setup(const char *id, const char *label);
     void setup(const char *id);
     void add_sibling(ConfigItemBase *sibling);
     ConfigItemBase *_sibling = nullptr;
     const char *_id;
     const char *_label;
-    void to_json(JsonObject &doc);
-    void from_json(JsonObject &doc);
+    virtual void to_json(JsonObject &doc);
+    virtual void from_json(JsonObject &doc);
     virtual void item_from_json(JsonObject &doc);
     virtual void item_to_json(JsonObject &doc);
 };
@@ -72,6 +73,21 @@ class ConfigItemInt : public ConfigItem {
 
    private:
     int _value;
+};
+
+class ConfigItemFloat : public ConfigItem {
+   public:
+    ConfigItemFloat();
+    void init(const char *id, const char *label, float defaultValue);
+    void init(const char *id, float defaultValue);
+    void set(float val) { _value = val; };
+
+    float get() { return _value; };
+    void item_from_json(JsonObject &doc);
+    void item_to_json(JsonObject &doc);
+
+   private:
+    float _value;
 };
 
 class ConfigItemString : public ConfigItem {
