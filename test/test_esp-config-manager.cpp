@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "arduinojson.h"
-#include "esp32config.h"
+#include "esp-config-manager.h"
 
 namespace {
 TEST(ConfigItemBool, Base) {
@@ -12,14 +12,28 @@ TEST(ConfigItemBool, Base) {
     ASSERT_EQ(ci.get(), false);
 }
 
-// TEST(ConfigItemBool, FromJSON) {
-//     ConfigItemBool ci("tag", false);
-//     StaticJsonDocument<256> doc;
-//     deserializeJson(doc, "{\"tag\":true}");
-//     ASSERT_EQ(ci.get(), false);
-//     ci.from_json(doc);
-//     ASSERT_EQ(ci.get(), true);
-// }
+TEST(ConfigItemBool, Base_No_Label) {
+    ConfigItemBool ci;
+    ci.init("tag", true);
+    ASSERT_EQ(ci.get(), true);
+    ci.set(false);
+    ASSERT_EQ(ci.get(), false);
+}
+
+TEST(ConfigItemBool, FromJSON) {
+    DynamicJsonDocument doc(512);
+
+    deserializeJson(doc, "{\"cfg\":{\"tag\":true}}");
+
+    JsonObject child_object = doc["cfg"];
+
+    ConfigItemBool ci;
+    ci.init("tag", "Label", false);
+
+    ASSERT_EQ(ci.get(), false);
+    ci.from_json(child_object);
+    ASSERT_EQ(ci.get(), true);
+}
 
 TEST(ConfigItemBool, ToJSON) {
     String out;
@@ -45,22 +59,42 @@ TEST(ConfigItemInt, Base) {
     ASSERT_EQ(ci.get(), -10);
 }
 
-// TEST(ConfigItemInt, FromJSON) {
-//     ConfigItemInt ci("tag", 123456);
-//     StaticJsonDocument<256> doc;
-//     deserializeJson(doc, "{\"tag\":108108}");
-//     ASSERT_EQ(ci.get(), 123456);
-//     ci.from_json(doc);
-//     ASSERT_EQ(ci.get(), 108108);
-// }
-// TEST(ConfigItemInt, FromJSON_negative) {
-//     ConfigItemInt ci("tag", 123456);
-//     StaticJsonDocument<256> doc;
-//     deserializeJson(doc, "{\"tag\":-108108}");
-//     ASSERT_EQ(ci.get(), 123456);
-//     ci.from_json(doc);
-//     ASSERT_EQ(ci.get(), -108108);
-// }
+TEST(ConfigItemInt, Base_No_Label) {
+    ConfigItemInt ci;
+    ci.init("int", 123);
+    ASSERT_EQ(ci.get(), 123);
+    ci.set(-10);
+    ASSERT_EQ(ci.get(), -10);
+}
+
+TEST(ConfigItemInt, FromJSON) {
+    DynamicJsonDocument doc(512);
+
+    deserializeJson(doc, "{\"cfg\":{\"int\":56789}}");
+
+    JsonObject child_object = doc["cfg"];
+
+    ConfigItemInt ci;
+    ci.init("int", "label", 12345);
+
+    ASSERT_EQ(ci.get(), 12345);
+    ci.from_json(child_object);
+    ASSERT_EQ(ci.get(), 56789);
+}
+
+TEST(ConfigItemInt, FromJSON_negative) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"int\":-56789}}");
+
+    JsonObject child_object = doc["cfg"];
+
+    ConfigItemInt ci;
+    ci.init("int", "label", 12345);
+
+    ASSERT_EQ(ci.get(), 12345);
+    ci.from_json(child_object);
+    ASSERT_EQ(ci.get(), -56789);
+}
 
 TEST(ConfigItemInt, ToJSON) {
     String out;
@@ -80,6 +114,69 @@ TEST(ConfigItemInt, ToJSON) {
     ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"int\":-12347}}");
 }
 
+TEST(ConfigItemFloat, Base) {
+    ConfigItemFloat ci;
+    ci.init("float", "label", 123.02035);
+    EXPECT_FLOAT_EQ(ci.get(), 123.02035);
+    ci.set(-10.568);
+    EXPECT_FLOAT_EQ(ci.get(), -10.568);
+}
+
+TEST(ConfigItemFloat, Base_No_Label) {
+    ConfigItemFloat ci;
+    ci.init("float", 123.02035);
+    EXPECT_FLOAT_EQ(ci.get(), 123.02035);
+    ci.set(-10.568);
+    EXPECT_FLOAT_EQ(ci.get(), -10.568);
+}
+
+TEST(ConfigItemFloat, FromJSON) {
+    DynamicJsonDocument doc(512);
+
+    deserializeJson(doc, "{\"cfg\":{\"float\":56.789}}");
+
+    JsonObject child_object = doc["cfg"];
+
+    ConfigItemFloat ci;
+    ci.init("float", "label", 12345.456);
+
+    EXPECT_FLOAT_EQ(ci.get(), 12345.456);
+    ci.from_json(child_object);
+    EXPECT_FLOAT_EQ(ci.get(), 56.789001);
+}
+
+TEST(ConfigItemFloat, FromJSON_negative) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"float\":-56.789}}");
+
+    JsonObject child_object = doc["cfg"];
+
+    ConfigItemFloat ci;
+    ci.init("float", "label", 123.45);
+
+    EXPECT_FLOAT_EQ(ci.get(), 123.45);
+    ci.from_json(child_object);
+    EXPECT_FLOAT_EQ(ci.get(), -56.789);
+}
+
+TEST(ConfigItemFloat, ToJSON) {
+    String out;
+    DynamicJsonDocument doc(512);
+    JsonObject child_object = doc.createNestedObject("cfg");
+
+    ConfigItemFloat ci;
+    ci.init("float", "label", 12.3456789);
+    ci.to_json(child_object);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"float\":12.34567928}}");
+    out = "";
+    ci.set(-98.765432);
+    child_object = doc.createNestedObject("cfg");
+    ci.to_json(child_object);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"float\":-98.76543427}}");
+}
+
 TEST(ConfigItemString, Base) {
     ConfigItemString ci;
     ci.init("str", "label", "default Value");
@@ -87,15 +184,25 @@ TEST(ConfigItemString, Base) {
     ci.set("string");
     ASSERT_STREQ(ci.get(), "string");
 }
+TEST(ConfigItemString, Base_No_Label) {
+    ConfigItemString ci;
+    ci.init("str", "default Value");
+    ASSERT_STREQ(ci.get(), "default Value");
+    ci.set("string");
+    ASSERT_STREQ(ci.get(), "string");
+}
+TEST(ConfigItemString, FromJSON) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"str\":\"New String\"}}");
+    JsonObject child_object = doc["cfg"];
 
-// TEST(ConfigItemString, FromJSON) {
-//     ConfigItemString ci("tag", "Test String");
-//     StaticJsonDocument<256> doc;
-//     deserializeJson(doc, "{\"tag\":\"New String\"}");
-//     ASSERT_STREQ(ci.get(), "Test String");
-//     ci.from_json(doc);
-//     ASSERT_STREQ(ci.get(), "New String");
-// }
+    ConfigItemString ci;
+    ci.init("str", "label", "default Value");
+
+    ASSERT_STREQ(ci.get(), "default Value");
+    ci.from_json(child_object);
+    ASSERT_STREQ(ci.get(), "New String");
+}
 
 TEST(ConfigItemString, ToJSON) {
     String out;
@@ -126,15 +233,25 @@ TEST(ConfigItemIP, Base) {
     ci.set(IPAddress(192, 168, 34, 21));
     ASSERT_EQ(ci.get(), IPAddress(192, 168, 34, 21));
 }
+TEST(ConfigItemIP, Base_No_Label) {
+    ConfigItemIP ci;
+    ci.init("tag", IPAddress(192, 168, 12, 34));
+    ASSERT_EQ(ci.get(), IPAddress(192, 168, 12, 34));
+    ci.set(IPAddress(192, 168, 34, 21));
+    ASSERT_EQ(ci.get(), IPAddress(192, 168, 34, 21));
+}
+TEST(ConfigItemIP, FromJSON) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"ip\":[127,0,15,46]}}");
+    JsonObject child_object = doc["cfg"];
 
-// TEST(ConfigItemIP, FromJSON) {
-//     ConfigItemIP ci("tag", IPAddress(192, 168, 12, 34));
-//     StaticJsonDocument<256> doc;
-//     deserializeJson(doc, "{\"tag\":[127,0,15,46]}");
-//     ASSERT_EQ(ci.get(), IPAddress(192, 168, 12, 34));
-//     ci.from_json(doc);
-//     ASSERT_EQ(ci.get(), IPAddress(127, 0, 15, 46));
-// }
+    ConfigItemIP ci;
+    ci.init("ip", "label", IPAddress(192, 168, 12, 34));
+
+    ASSERT_EQ(ci.get(), IPAddress(192, 168, 12, 34));
+    ci.from_json(child_object);
+    ASSERT_EQ(ci.get(), IPAddress(127, 0, 15, 46));
+}
 
 TEST(ConfigItemIP, ToJSON) {
     String out;
@@ -157,8 +274,8 @@ TEST(ConfigItemIP, ToJSON) {
     ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"tag\":[18,45,62,54]}}");
 }
 
-TEST(ESP32Config, Create) {
-    ESP32Config ec;
+TEST(ESPConfigManager, Create) {
+    ESPConfigManager ec;
     EXPECT_EQ(ec._base_group, nullptr);
 }
 TEST(ConfigItem, Create) {
@@ -178,8 +295,8 @@ TEST(ConfigGroup, Create) {
     EXPECT_EQ(cg._child, nullptr);
 }
 
-TEST(ESP32Config, add_group) {
-    ESP32Config ec;
+TEST(ESPConfigManager, add_group) {
+    ESPConfigManager ec;
     EXPECT_EQ(ec._base_group, nullptr);
     ConfigGroup cg;
     cg.setup("tag_grp", "Label_Group");
@@ -187,8 +304,8 @@ TEST(ESP32Config, add_group) {
     EXPECT_EQ(ec._base_group, &cg);
 }
 
-TEST(ESP32Config, add_2_groups) {
-    ESP32Config ec;
+TEST(ESPConfigManager, add_2_groups) {
+    ESPConfigManager ec;
     EXPECT_EQ(ec._base_group, nullptr);
     ConfigGroup cg;
     cg.setup("tag_grp", "Label_Group");
@@ -201,6 +318,16 @@ TEST(ESP32Config, add_2_groups) {
 }
 
 TEST(ConfigGroup, add_item) {
+    ConfigGroup cg;
+    cg.setup("tag_grp", "Label_Group");
+    ConfigItemBool cb;
+    cb.init("tag", "label", true);
+    cg.add_child(&cb);
+    EXPECT_EQ(cg._child, &cb);
+    EXPECT_EQ(cb._sibling, nullptr);
+}
+
+TEST(ConfigGroup, add_2_items) {
     ConfigGroup cg;
     cg.setup("tag_grp", "Label_Group");
     ConfigItemBool cb;
@@ -247,91 +374,269 @@ TEST(ConfigGroup, to_json_with_child) {
     ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"tag_grp\":{\"tag\":true}}}");
 }
 
-// TEST(ConfigGroup, add_2_items) {
-// }
+TEST(ConfigGroup, from_json_with_child) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"tag_grp\":{\"tag\":true}}}");
+    JsonObject child_object = doc["cfg"];
 
-// TEST(ConfigItem, init) {
-//     ESP32Config ec;
-//     String out;
-//     DynamicJsonDocument doc(512);
+    ConfigGroup cg;
+    cg.setup("tag_grp", "Label_Group");
 
-//     ConfigItem base_item;
-//     base_item.init("name");
-//     ASSERT_STREQ(base_item._id, "name");
-//     JsonObject child_object = doc.createNestedObject("cfg");
-//     base_item.to_json(child_object);
-//     serializeJson(doc, out);
-//     ASSERT_STREQ(out.c_str(), "{\"cfg\":{}}");
-// }
+    ConfigItemBool ci;
+    ci.init("tag", "Label", false);
 
-// TEST(ConfigItem, add_child) {
-//     //     // ESP32Config ec;
-//     String out;
-//     DynamicJsonDocument doc(512);
+    cg.add_child(&ci);
 
-//     ConfigItem config_group;
-//     config_group.init("grp");
+    ASSERT_EQ(ci.get(), false);
+    cg.from_json(child_object);
+    ASSERT_EQ(ci.get(), true);
+}
 
-//     ConfigItemBool base_item;
-//     base_item.init("bool");
+TEST(ConfigGroup, to_json_with_2_children) {
+    String out;
+    DynamicJsonDocument doc(512);
+    JsonObject child_object = doc.createNestedObject("cfg");
 
-//     EXPECT_EQ(config_group._child, nullptr);
+    ConfigGroup cg;
+    cg.setup("tag_grp", "Label_Group");
 
-//     config_group.add_child(&base_item);
-//     EXPECT_NE(config_group._child, nullptr);
-//     ASSERT_STREQ(config_group._id, "grp");
-//     JsonObject child_object = doc.createNestedObject("cfg");
-//     config_group.to_json(child_object);
-//     serializeJson(doc, out);
-//     ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"grp\":{\"bool\":true}}}");
-// }
+    cg.to_json(child_object);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"cfg\":{}}");
 
-// TEST(ConfigGroup, init) {
-//     // ESP32Config ec;
-//     String out;
-//     DynamicJsonDocument doc(512);
+    out = "";
+    ConfigItemBool ci;
+    ci.init("bool", "Label", true);
+    ConfigItemInt cint;
+    cint.init("int", "Label", 12345);
 
-//     ConfigGroup config_group;
-//     config_group.init("name");
-//     ASSERT_STREQ(config_group._id, "name");
-//     // ec.init(&config_group);
-//     config_group.to_json(doc);
-//     serializeJson(doc, out);
-//     ASSERT_STREQ(out.c_str(), "{\"name\":{}}");
-// }
+    cg.add_child(&ci);
+    cg.add_child(&cint);
+    cg.to_json(child_object);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"tag_grp\":{\"bool\":true,\"int\":12345}}}");
+}
 
-// TEST(ConfigGroup, Add_Item) {
-//     // ESP32Config ec;
-//     ConfigGroup config_group;
-//     ConfigItemBool();
-//     ec.init(&config_group);
-//     EXPECT_EQ(ec._base_group, &config_group);
-// }
+TEST(ConfigGroup, from_json_with_2_children) {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, "{\"cfg\":{\"tag_grp\":{\"bool\":false, \"int\":12345}}}");
+    JsonObject child_object = doc["cfg"];
 
-// TEST(ESP32Config, Add_2_items) {
-//     ESP32Config ec;
-//     ConfigGroup bci1;
-//     ConfigGroup bci2;
-//     ec.add_item(&bci1);
-//     ec.add_item(&bci2);
-//     EXPECT_EQ(ec._child, &bci1);
-//     EXPECT_EQ(bci1._sibling, &bci2);
-//     EXPECT_EQ(bci2._sibling, nullptr);
-// }
+    ConfigGroup cg;
+    cg.setup("tag_grp", "Label_Group");
 
-// TEST(ESP32Config, Add_All_Diferent_items) {
-//     ESP32Config ec;
-//     ConfigItemBool ci_bool("bool", true);
-//     ConfigItemInt ci_int("int", -108);
-//     ConfigItemString ci_string("string", "String Text");
-//     ec.add_item(&ci_bool);
-//     ec.add_item(&ci_int);
-//     ec.add_item(&ci_string);
-//     EXPECT_EQ(ec._child, &ci_bool);
-//     EXPECT_EQ(ci_bool._sibling, &ci_int);
-//     EXPECT_EQ(ci_int._sibling, &ci_string);
-//     EXPECT_EQ(ci_string._sibling, nullptr);
-// }
+    ConfigItemBool ci;
+    ci.init("bool", "Label", true);
+    ConfigItemInt cint;
+    cint.init("int", "Label", -98765);
+
+    cg.add_child(&ci);
+    cg.add_child(&cint);
+    ASSERT_EQ(ci.get(), true);
+    ASSERT_EQ(cint.get(), -98765);
+    cg.from_json(child_object);
+    ASSERT_EQ(ci.get(), false);
+    ASSERT_EQ(cint.get(), 12345);
+}
+
+TEST(ESPConfigManager, set_wifissid) {
+    ESPConfigManager ec;
+    ec.set_wifissid("wifissid");
+    ASSERT_STREQ(ec.get_ssid(), "wifissid");
+}
+
+TEST(ESPConfigManager, set_wifikey) {
+    ESPConfigManager ec;
+    ec.set_wifikey("wifikey");
+    ASSERT_STREQ(ec.get_key(), "wifikey");
+}
+
+TEST(ESPConfigManager, set_wifi) {
+    ESPConfigManager ec;
+    ec.set_wifi("wifissid", "wifikey");
+    ASSERT_STREQ(ec.get_ssid(), "wifissid");
+    ASSERT_STREQ(ec.get_key(), "wifikey");
+}
+
+TEST(ESPConfigManager, save_to_json) {
+    String out;
+    DynamicJsonDocument doc(512);
+    ESPConfigManager ec;
+    ec.set_wifi("wifissid", "wifikey");
+    ec.save_to_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"wifi\":{\"ssid\":\"wifissid\",\"key\":\"wifikey\"}}");
+}
+
+TEST(ESPConfigManager, save_wifi_to_json) {
+    String out;
+    DynamicJsonDocument doc(512);
+    ESPConfigManager ec;
+    ec.set_wifi("wifissid", "wifikey");
+    ec.save_wifi_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"wifi\":{\"ssid\":\"wifissid\",\"key\":\"wifikey\"}}");
+}
+
+TEST(ESPConfigManager, save_to_json_empty_wifi) {
+    String out;
+    DynamicJsonDocument doc(512);
+    ESPConfigManager ec;
+    ec.save_wifi_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "null");
+}
+
+TEST(ESPConfigManager, save_to_json_with_empty_base_group) {
+    String out;
+    DynamicJsonDocument doc(512);
+    ESPConfigManager ec;
+    ConfigGroup cg;
+    cg.setup("nw", "Network");
+    ec.set_wifi("wifissid", "wifikey");
+    ec.save_to_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"wifi\":{\"ssid\":\"wifissid\",\"key\":\"wifikey\"}}");
+}
+
+TEST(ESPConfigManager, save_to_json_with_base_group_with_2_items) {
+    String out;
+    DynamicJsonDocument doc(512);
+    ESPConfigManager ec;
+    ec.set_wifi("wifissid", "wifikey");
+
+    ConfigGroup cg;
+    cg.setup("nw", "Network");
+
+    ConfigItemInt cint;
+    cint.init("int", "Label", 12345);
+
+    ConfigItemString cstr;
+    cstr.init("str", "Label", "text");
+    ec.add_group(&cg);
+    cg.add_child(&cint);
+    cg.add_child(&cstr);
+    ec.save_to_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"wifi\":{\"ssid\":\"wifissid\",\"key\":\"wifikey\"},\"cfg\":{\"nw\":{\"int\":12345,\"str\":\"text\"}}}");
+}
+
+TEST(ESPConfigManager, save_to_json_with_2_base_groups) {
+    String out;
+    DynamicJsonDocument doc(1024);
+    ESPConfigManager ec;
+    ec.set_wifi("wifissid", "wifikey");
+
+    ConfigGroup cg;
+    cg.setup("nw");
+
+    ConfigGroup cg_data;
+    cg_data.setup("data");
+
+    ConfigItemInt cint;
+    cint.init("int", "Label", 12345);
+
+    ConfigItemString cstr;
+    cstr.init("str", "Label", "text");
+
+    cg.add_child(&cint);
+    cg_data.add_child(&cstr);
+    ec.add_group(&cg);
+    ec.add_group(&cg_data);
+    ec.save_to_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"wifi\":{\"ssid\":\"wifissid\",\"key\":\"wifikey\"},\"cfg\":{\"nw\":{\"int\":12345},\"data\":{\"str\":\"text\"}}}");
+}
+
+TEST(ESPConfigManager, save_to_json_with_2_base_groups_no_wifi) {
+    String out;
+    DynamicJsonDocument doc(1024);
+    ESPConfigManager ec;
+    // ec.set_wifi("wifissid", "wifikey");
+
+    ConfigGroup cg;
+    cg.setup("nw");
+
+    ConfigGroup cg_data;
+    cg_data.setup("data");
+
+    ConfigItemInt cint;
+    cint.init("int", "Label", 12345);
+
+    ConfigItemString cstr;
+    cstr.init("str", "Label", "text");
+
+    cg.add_child(&cint);
+    cg_data.add_child(&cstr);
+    ec.add_group(&cg);
+    ec.add_group(&cg_data);
+    ec.save_to_json(doc);
+    serializeJson(doc, out);
+    ASSERT_STREQ(out.c_str(), "{\"cfg\":{\"nw\":{\"int\":12345},\"data\":{\"str\":\"text\"}}}");
+}
+
+TEST(ESPConfigManager, save_and_load_config) {
+    if (!LittleFS.begin()) {
+        // LittleFS.format();
+        Serial.println("An Error has occurred while mounting LittleFS");
+        return;
+    }
+
+    LittleFS.remove("/esp_cfg.json");
+    ESPConfigManager *esp_config = new ESPConfigManager();
+    ConfigGroup *config_group_nw = new ConfigGroup();
+    ConfigGroup *config_group_data = new ConfigGroup();
+    ConfigItemIP *cip = new ConfigItemIP();
+    ConfigItemInt *cint = new ConfigItemInt();
+    ConfigItemString *cstr = new ConfigItemString();
+
+    esp_config->set_wifi("wifissid", "wifikey");
+
+    config_group_nw->setup("nw");
+    config_group_data->setup("data");
+
+    cip->init("ipaddress", IPAddress(192, 168, 10, 196));
+    cint->init("int", 12345);   // Default value 12345
+    cstr->init("str", "text");  // Default value "text"
+
+    esp_config->add_group(config_group_nw);
+    esp_config->add_group(config_group_data);
+
+    config_group_nw->add_child(cint);
+    config_group_nw->add_child(cstr);
+
+    cint->set(108);         // Overwrite default value
+    cstr->set("New Text");  // Overwrite default value
+    esp_config->save();     // save
+
+    // delete esp_config;
+    // delete config_group_nw;
+    // delete cint;
+    // delete cstr;
+
+    esp_config = new ESPConfigManager();
+    config_group_nw = new ConfigGroup();
+    config_group_data = new ConfigGroup();
+    cint = new ConfigItemInt();
+    cstr = new ConfigItemString();
+
+    config_group_nw->setup("nw");
+    cint->init("int", 12345);   // Default value 12345
+    cstr->init("str", "text");  // Default value "text"
+
+    esp_config->add_group(config_group_nw);
+    config_group_nw->add_child(cint);
+    config_group_nw->add_child(cstr);
+
+    // ASSERT_STREQ(esp_config->get_ssid(), NULL);  // default value
+    // ASSERT_STREQ(esp_config->get_key(), NULL);   // default value
+
+    ASSERT_EQ(cint->get(), 12345);      // default value
+    ASSERT_STREQ(cstr->get(), "text");  // default value
+    esp_config->load();
+    ASSERT_EQ(cint->get(), 108);            // new value
+    ASSERT_STREQ(cstr->get(), "New Text");  // new value
+}
 
 }  // namespace
 
@@ -354,11 +659,11 @@ void loop() {
         ;
 
     // sleep for 1 sec
-    delay(1000);
+    delay(60000);
 }
 
 #else
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     // if you plan to use GMock, replace the line above with
     // ::testing::InitGoogleMock(&argc, argv);
