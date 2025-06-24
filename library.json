@@ -1,0 +1,29 @@
+{
+    "name": "esp config Manager",
+    "version": "0.0.1",
+    "description": "A library to manage ESP configurations easily. It provides a simple interface to read, write, and update configuration settings for ESP devices. The configuration will be stored on the filesystem",
+    "keywords": "configuration manager, esp, esp32, esp8266, settings, filesystem",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/richarddeweerd/esp-config-manager.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Richard de Weerd",
+        "email": "esp@deweerd.biz",
+        "url": "https://github.com/richarddeweerd/",
+        "maintainer": true
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/richarddeweerd/esp-config-manager/",
+    "dependencies": {
+      "bblanchon/ArduinoJson@": "~6.20.0"      
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif32, espressif8266"
+
+  }
+  
