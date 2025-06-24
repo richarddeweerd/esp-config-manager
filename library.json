@@ -1,6 +1,6 @@
 {
     "name": "esp-config-manager",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "A library to manage ESP configurations easily. It provides a simple interface to read, write, and update configuration settings for ESP devices. The configuration will be stored in a json file on the Little.FS filesystem",
     "keywords": "configuration manager, esp, esp32, esp8266, settings, filesystem",
     "repository":
